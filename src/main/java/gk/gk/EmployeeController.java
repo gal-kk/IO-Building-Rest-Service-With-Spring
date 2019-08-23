@@ -1,11 +1,15 @@
 package gk.gk;
 
+import gk.gk.Exception.EmployeeNotFoundException;
+import gk.gk.Repository.EmployeeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
-import org.springframework.hateoas.mvc.ControllerLinkBuilder;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -13,6 +17,7 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.*;
 
 @RestController
 public class EmployeeController {
+
     @Autowired
     private EmployeeRepository employeeRepository;
 
@@ -37,8 +42,9 @@ public class EmployeeController {
     }
 
     @PostMapping("employees")
-    public Employee addNewEmployee(@RequestBody Employee employee){
-        return employeeRepository.save(employee);
+    public ResponseEntity<?> addNewEmployee(@RequestBody Employee employee) throws URISyntaxException {
+        Resource resource = employeeResourceAssembler.toResource(employeeRepository.save(employee));
+        return ResponseEntity.created(new URI(resource.getId().expand().getHref())).body(resource);
     }
 
     @GetMapping("/employees/{id}")
@@ -52,20 +58,25 @@ public class EmployeeController {
     }
 
     @PutMapping("/employees/{id}")
-    public Employee replaceEmployee(@RequestBody Employee newEmployee, @PathVariable long id){
-        return employeeRepository.findById(id).map(employee ->
-                {employee.setName(newEmployee.getName());
-                employee.setRole(newEmployee.getRole());
-                return employeeRepository.save(employee);
+    public ResponseEntity<?> replaceEmployee(@RequestBody Employee newEmployee, @PathVariable long id) throws URISyntaxException {
+        Employee employee =  employeeRepository.findById(id).map(i ->
+                {i.setName(newEmployee.getName());
+                i.setRole(newEmployee.getRole());
+                return employeeRepository.save(i);
         })
                 .orElseGet(() ->
                         {newEmployee.setId(id);
                         return employeeRepository.save(newEmployee);}
         );
+        Resource resource = employeeResourceAssembler.toResource(employee);
+        return ResponseEntity.created(new URI(resource.getId().expand().getHref())).body(resource);
+
     }
 
     @DeleteMapping("/employees/{id}")
-    void deleteEmployee(@PathVariable Long id) {
+    ResponseEntity<?> deleteEmployee(@PathVariable Long id) {
+
         employeeRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }

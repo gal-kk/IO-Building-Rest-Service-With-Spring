@@ -1,4 +1,4 @@
-package gk.gk;
+package gk.gk.Exception;
 
 public class EmployeeNotFoundException extends RuntimeException {
     public EmployeeNotFoundException(Long id) {
